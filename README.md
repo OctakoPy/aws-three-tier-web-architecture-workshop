@@ -503,16 +503,96 @@ This layered approach ensures:
 
 ---
 
-### Step 6: DB Subnet Group Configuration
+### Step 6: Database Subnet Group
 
-A DB Subnet Group is created to define which private subnets Amazon RDS can use for database deployment in the three-tier architecture.
+A DB Subnet Group defines which subnets Amazon RDS can use for database deployment. This is a prerequisite for creating RDS instances and ensures the database is deployed in the correct private subnets across multiple availability zones.
 
-#### DB Subnet Group Details
+#### DB Subnet Group Configuration
 
-| Property                | Value                                   |
-| ----------------------- | --------------------------------------- |
-| **Name**               | three-tier-db-subnet-group              |
-| **VPC**                | vpc-0eb2f3f126ab55220                  |
-| **Status**             | Complete                               |
+**DB Subnet Group Details:**
+- **Name:** three-tier-db-subnet-group
+- **VPC:** vpc-0eb2f3f126ab55220
+- **Description:** Subnet group for Aurora MySQL database deployment
+- **Status:** Complete
 
-**Subnets Included:**
+**Included Subnets:**
+
+| Subnet Name           | Subnet ID                | AZ         | Tier | Purpose                    |
+| --------------------- | ------------------------ | ---------- | ---- | -------------------------- |
+| Private-DB-Subnet-AZ1 | subnet-0381b1f52f14b7ac7 | us-east-1a | DB   | Primary database subnet    |
+| Private-DB-Subnet-AZ2 | subnet-0e99f649f9a486b41 | us-east-1b | DB   | Secondary database subnet  |
+
+#### How to Create
+
+1. Navigate to RDS Dashboard in AWS Console
+2. In the left sidebar, click "Subnet groups"
+3. Click "Create DB subnet group"
+4. Enter the following details:
+   - **Name:** `three-tier-db-subnet-group`
+   - **Description:** `Subnet group for Aurora MySQL database deployment`
+   - **VPC:** Select `vpc-0eb2f3f126ab55220`
+5. In the "Add subnets" section:
+   - **Availability Zones:** Select both `us-east-1a` and `us-east-1b`
+   - **Subnets:** Select the private DB subnets:
+     - `subnet-0381b1f52f14b7ac7` (Private-DB-Subnet-AZ1)
+     - `subnet-0e99f649f9a486b41` (Private-DB-Subnet-AZ2)
+6. Click "Create"
+
+![DB Subnet Group Configuration](application-code/images-revised/db-subnet-group.png)
+
+#### Design Justification
+
+**Security Isolation:**
+- The DB subnet group uses only private subnets, ensuring the database has no direct internet access
+- Database instances are completely isolated from public-facing components
+- Only authorized application-tier resources can reach the database through security groups
+
+**High Availability:**
+- Subnets are distributed across two different Availability Zones (us-east-1a and us-east-1b)
+- This configuration enables Multi-AZ deployment for automatic failover
+- If one AZ becomes unavailable, the database can continue operating in the other AZ
+
+**Network Architecture:**
+- The subnet group provides RDS with flexibility to place database instances optimally
+- Ensures compliance with AWS best practices for database deployment
+- Supports both primary and standby instances in Multi-AZ configurations
+
+**Operational Benefits:**
+- Simplifies RDS instance creation by pre-defining available subnets
+- Ensures consistent placement of database resources within the private tier
+- Facilitates automated backup and maintenance operations
+
+---
+
+### Step 7: Database Deployment
+
+A MySQL-compatible Amazon Aurora cluster is deployed to support the private database layer of the three-tier architecture. The cluster is configured for high availability and isolated within private subnets.
+
+#### Cluster Details
+
+- **DB Cluster Identifier:** three-tier-app-db-cluster
+- **Engine:** aurora-mysql
+- **Multi-AZ:** True – ensures high availability across Availability Zones
+- **Subnet Group:** three-tier-db-subnet-group – includes private DB subnets in us-east-1a and us-east-1b
+- **Master Username:** yourusername
+- **Status:** available
+
+#### Endpoints
+
+| Type   | Endpoint                                                                      |
+| ------ | ----------------------------------------------------------------------------- |
+| Writer | three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com   |
+| Reader | three-tier-app-db-cluster.cluster-ro-cnyoswgyplvb.us-east-1.rds.amazonaws.com |
+
+- **Writer endpoint:** Used for all read/write database operations.
+- **Reader endpoint:** Optional for read-only queries, enabling load distribution.
+
+![Aurora Database Deployment](application-code/images-revised/aurora-database-deployment.png)
+
+#### Design Justification
+
+- **Private placement:** The database resides in private subnets to prevent direct internet access.
+- **High availability:** Multi-AZ deployment ensures the database remains operational even if one AZ fails.
+- **Security:** Access is controlled through the Private-DB Security Group, allowing only authorized app-tier instances to communicate with the database.
+
+---
