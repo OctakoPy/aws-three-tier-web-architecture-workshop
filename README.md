@@ -2,6 +2,31 @@
 
 A secure, scalable file-sharing application built on AWS three-tier architecture with user authentication, file upload/download, and file sharing capabilities.
 
+## 📋 Table of Contents
+- [Features](#-features)
+- [Architecture Overview](#️-architecture-overview)
+- [Setup Guide](#-setup-guide)
+  - [Step 1: VPC Configuration](#step-1-vpc-configuration)
+  - [Step 2: Subnet Creation](#step-2-subnet-creation)
+  - [Step 3: Internet Gateway & Route Tables](#step-3-internet-gateway--route-tables)
+  - [Step 4: Security Groups](#step-4-security-groups)
+  - [Step 5: Database Setup](#step-5-database-setup)
+  - [Step 6: Application Tier Deployment](#step-6-application-tier-deployment)
+  - [Step 7: Web Tier Deployment](#step-7-web-tier-deployment)
+  - [Step 8: Load Balancer Configuration](#step-8-load-balancer-configuration)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#️-database-schema)
+- [Technology Stack](#️-technology-stack)
+- [Project Structure](#-project-structure)
+- [Security Considerations](#-security-considerations)
+- [Usage Guide](#-usage-guide)
+- [Testing](#-testing-the-api)
+- [Monitoring & Logs](#-monitoring--logs)
+- [Troubleshooting](#-troubleshooting)
+- [Known Issues](#️-known-issues--problems)
+
+---
+
 ## 🎯 Features
 
 ### User Management
@@ -51,6 +76,313 @@ A secure, scalable file-sharing application built on AWS three-tier architecture
 - Health checks at all layers
 - VPC with public and private subnets
 - Security groups for network isolation
+
+---
+
+## 🚀 Setup Guide
+
+This guide documents the step-by-step process of setting up the file-sharing application on AWS.
+
+### Prerequisites
+1. AWS account with permissions for EC2, RDS, VPC, ELB, Auto Scaling, S3
+2. Node.js 14+ and npm installed
+3. AWS Academy Lab environment or standard AWS account
+4. S3 bucket named `file-sharing-bucket12` for storing application assets
+5. Understanding of AWS networking (VPC, subnets, security groups)
+
+---
+
+### Step 1: VPC Configuration
+
+Create a Virtual Private Cloud to isolate your application infrastructure.
+
+**VPC Details:**
+- **IPv4 CIDR Block:** `10.0.0.0/16`
+- **Region:** us-east-1
+- **DNS Hostnames:** Enabled
+- **DNS Resolution:** Enabled
+
+**How to Create:**
+1. Navigate to VPC Dashboard in AWS Console
+2. Click "Create VPC"
+3. Select "VPC only"
+4. Enter CIDR block: `10.0.0.0/16`
+5. Click "Create VPC"
+
+---
+
+### Step 2: Subnet Creation
+
+Create 6 subnets across 2 availability zones for high availability.
+
+**Subnet Configuration:**
+
+| Subnet Name            | Subnet ID                | CIDR          | AZ         | Tier | Type    |
+| ---------------------- | ------------------------ | ------------- | ---------- | ---- | ------- |
+| Public-Web-Subnet-AZ1  | subnet-08cf1139c7978f3b3 | 10.0.1.0/24   | us-east-1a | Web  | Public  |
+| Private-App-Subnet-AZ1 | subnet-0818b9d3244d1e8df | 10.0.2.0/24   | us-east-1a | App  | Private |
+| Private-DB-Subnet-AZ1  | subnet-0381b1f52f14b7ac7 | 10.0.3.0/24   | us-east-1a | DB   | Private |
+| Public-Web-Subnet-AZ2  | subnet-03a2e3358432a268b | 10.0.101.0/24 | us-east-1b | Web  | Public  |
+| Private-App-Subnet-AZ2 | subnet-02dac064e831ff206 | 10.0.102.0/24 | us-east-1b | App  | Private |
+| Private-DB-Subnet-AZ2  | subnet-0e99f649f9a486b41 | 10.0.103.0/24 | us-east-1b | DB   | Private |
+
+**How to Create:**
+1. Navigate to VPC Dashboard → Subnets
+2. Click "Create subnet"
+3. Select your VPC
+4. For each subnet:
+   - Enter subnet name
+   - Select availability zone
+   - Enter IPv4 CIDR block
+   - Click "Add new subnet" for next one
+5. Click "Create subnet"
+
+**Subnet Purpose:**
+- **Public Web Subnets:** Host web tier EC2 instances with internet access
+- **Private App Subnets:** Host application tier EC2 instances (no direct internet access)
+- **Private DB Subnets:** Host RDS database instances (no direct internet access)
+
+---
+
+### Step 3: Internet Gateway & NAT Gateway Setup
+
+Enable internet connectivity for your VPC with an Internet Gateway and provide outbound internet access for private subnets using NAT Gateways.
+
+#### Internet Gateway
+
+**Internet Gateway Details:**
+- **Name:** ThreeTier-IGW
+- **Internet Gateway ID:** igw-xxxxxxxxxxxxxxxxx
+- **Attached to VPC:** vpc-0eb2f3f126ab55220
+
+**How to Create:**
+1. Navigate to VPC Dashboard → Internet Gateways
+2. Click "Create internet gateway"
+3. Enter name: `ThreeTier-IGW`
+4. Click "Create internet gateway"
+5. Select the created IGW and click "Actions" → "Attach to VPC"
+6. Select your VPC (10.0.0.0/16)
+7. Click "Attach internet gateway"
+
+![Internet Gateway Setup](application-code/images-revised/internet-gateway-setup.png)
+
+#### Elastic IPs for NAT Gateways
+
+Allocate Elastic IPs to ensure NAT Gateways have static public IP addresses.
+
+**Elastic IP Configuration:**
+
+| Name        | Allocation ID        | Purpose            |
+| ----------- | -------------------- | ------------------ |
+| EIP-NAT-AZ1 | eipalloc-xxxxxxxxxxx | NAT Gateway for AZ1 |
+| EIP-NAT-AZ2 | eipalloc-xxxxxxxxxxx | NAT Gateway for AZ2 |
+
+**How to Create:**
+1. Navigate to VPC Dashboard → Elastic IPs
+2. Click "Allocate Elastic IP address"
+3. Click "Allocate"
+4. Select the allocated EIP and add tag: `Name` = `EIP-NAT-AZ1`
+5. Repeat for second EIP with tag: `Name` = `EIP-NAT-AZ2`
+
+![Elastic IPs](application-code/images-revised/elastic-ips.png)
+
+#### NAT Gateways
+
+NAT Gateways allow instances in private subnets to access the internet while remaining private.
+
+**NAT Gateway Configuration:**
+
+| Name       | NAT Gateway ID       | Subnet                  | Subnet ID                | Elastic IP  | AZ         |
+| ---------- | -------------------- | ----------------------- | ------------------------ | ----------- | ---------- |
+| NAT-GW-AZ1 | nat-xxxxxxxxxxxxxxxxx | Public-Web-Subnet-AZ1   | subnet-08cf1139c7978f3b3 | EIP-NAT-AZ1 | us-east-1a |
+| NAT-GW-AZ2 | nat-xxxxxxxxxxxxxxxxx | Public-Web-Subnet-AZ2   | subnet-03a2e3358432a268b | EIP-NAT-AZ2 | us-east-1b |
+
+**How to Create:**
+1. Navigate to VPC Dashboard → NAT Gateways
+2. Click "Create NAT gateway"
+3. Enter name: `NAT-GW-AZ1`
+4. Select subnet: `Public-Web-Subnet-AZ1`
+5. Select Elastic IP: `EIP-NAT-AZ1`
+6. Click "Create NAT gateway"
+7. Repeat for NAT-GW-AZ2 in Public-Web-Subnet-AZ2 with EIP-NAT-AZ2
+
+![NAT Gateways](application-code/images-revised/nat-gateways.png)
+
+**Purpose:**
+- **Internet Gateway:** Enables bidirectional internet access for public subnets
+- **NAT Gateways:** Enable outbound-only internet access for private subnets
+- **Elastic IPs:** Provide static public IP addresses for NAT Gateways
+- **Redundancy:** One NAT Gateway per AZ for high availability
+
+---
+
+### Step 4: Route Tables
+
+Configure routing to enable internet access for public subnets and controlled outbound access for private subnets through NAT Gateways.
+
+#### Route Table Configuration
+
+The routing setup ensures that public subnets have internet access while private subnets remain isolated, but can still access the internet via NAT Gateways. This design follows best practices for a three-tier architecture with high availability across two availability zones.
+
+**Public Route Table**
+
+| Property     | Value                                           |
+| ------------ | ----------------------------------------------- |
+| **Name**     | Public-Route-Table                              |
+| **Purpose**  | Provides internet access for web layer instances |
+| **Route**    | 0.0.0.0/0 → igw-0623c5e0fe612bf17               |
+
+**Associated Subnets:**
+- Public-Web-Subnet-AZ1 (subnet-08cf1139c7978f3b3, us-east-1a)
+- Public-Web-Subnet-AZ2 (subnet-03a2e3358432a268b, us-east-1b)
+
+**Justification:** A single public route table is sufficient because all public subnets can share the same route to the IGW. This keeps the network simple and avoids unnecessary duplication.
+
+---
+
+**Private Route Table for AZ1**
+
+| Property     | Value                                                    |
+| ------------ | -------------------------------------------------------- |
+| **Name**     | Private-Route-Table-AZ1                                  |
+| **Purpose**  | Routes external traffic for app layer in AZ1             |
+| **Route**    | 0.0.0.0/0 → nat-0a6a2bf5e5558c66f                        |
+| **NAT GW**   | Located in Public-Web-Subnet-AZ1 (subnet-08cf1139c7978f3b3) |
+
+**Associated Subnets:**
+- Private-App-Subnet-AZ1 (subnet-0818b9d3244d1e8df, us-east-1a)
+
+**Justification:** Each AZ has its own private route table to maintain high availability. This ensures that if one NAT Gateway fails, only the private subnets in that AZ are affected, while the other AZ continues to function.
+
+---
+
+**Private Route Table for AZ2**
+
+| Property     | Value                                                    |
+| ------------ | -------------------------------------------------------- |
+| **Name**     | Private-Route-Table-AZ2                                  |
+| **Purpose**  | Routes external traffic for app layer in AZ2             |
+| **Route**    | 0.0.0.0/0 → nat-0007acb82852296f9                        |
+| **NAT GW**   | Located in Public-Web-Subnet-AZ2 (subnet-03a2e3358432a268b) |
+
+**Associated Subnets:**
+- Private-App-Subnet-AZ2 (subnet-02dac064e831ff206, us-east-1b)
+
+**Justification:** Same as AZ1 — separate NAT Gateway per AZ ensures resilience and redundancy.
+
+---
+
+#### How to Create
+
+**Create Public Route Table:**
+1. Navigate to VPC Dashboard → Route Tables
+2. Click "Create route table"
+3. Enter name: `Public-Route-Table`
+4. Select VPC: vpc-0eb2f3f126ab55220
+5. Click "Create route table"
+6. Select the route table → Routes tab → Edit routes
+7. Add route: Destination `0.0.0.0/0`, Target `igw-0623c5e0fe612bf17`
+8. Subnet Associations tab → Edit subnet associations
+9. Select both Public-Web-Subnet-AZ1 and Public-Web-Subnet-AZ2
+10. Click "Save associations"
+
+**Create Private Route Table for AZ1:**
+1. Click "Create route table"
+2. Enter name: `Private-Route-Table-AZ1`
+3. Select VPC: vpc-0eb2f3f126ab55220
+4. Click "Create route table"
+5. Routes tab → Edit routes
+6. Add route: Destination `0.0.0.0/0`, Target `nat-0a6a2bf5e5558c66f`
+7. Subnet Associations tab → Edit subnet associations
+8. Select Private-App-Subnet-AZ1 (subnet-0818b9d3244d1e8df)
+9. Click "Save associations"
+
+**Create Private Route Table for AZ2:**
+1. Click "Create route table"
+2. Enter name: `Private-Route-Table-AZ2`
+3. Select VPC: vpc-0eb2f3f126ab55220
+4. Click "Create route table"
+5. Routes tab → Edit routes
+6. Add route: Destination `0.0.0.0/0`, Target `nat-0007acb82852296f9`
+7. Subnet Associations tab → Edit subnet associations
+8. Select Private-App-Subnet-AZ2 (subnet-02dac064e831ff206)
+9. Click "Save associations"
+
+![Route Tables Configuration](application-code/images-revised/route-tables.png)
+
+---
+
+#### Verification and Status
+
+✅ **Internet Gateway:** igw-0623c5e0fe612bf17 is attached to vpc-0eb2f3f126ab55220
+
+✅ **Public Route Table:** Default route (0.0.0.0/0) points to the IGW; associated with both public subnets
+
+✅ **Private Route Tables:** Default routes (0.0.0.0/0) point to their respective NAT Gateways (nat-0a6a2bf5e5558c66f for AZ1, nat-0007acb82852296f9 for AZ2)
+
+✅ **NAT Gateways:** Both are available in correct public subnets with assigned public IPs:
+   - AZ1: 98.95.12.253
+   - AZ2: 18.235.73.60
+
+✅ **Subnet Associations:** Public subnets use the public route table; private app subnets use their respective private route tables
+
+---
+
+#### Summary / Design Justification
+
+- **One public route table** is sufficient because all public subnets share the same route to the IGW
+- **Two private route tables** provide per-AZ NAT Gateway routing, ensuring high availability and fault isolation
+- This configuration allows public-facing web servers to reach the internet directly while keeping app layer subnets private, but still allowing them to access the internet for updates or external services via NAT
+
+---
+
+### Step 5: Security Groups
+
+*(To be documented as you progress)*
+
+---
+
+### Step 5: Database Setup
+
+*(To be documented as you progress)*
+
+**Database Configuration:**
+- Run the `DATABASE_SETUP.sql` script to create tables
+- Configure `app-tier/DbConfig.js` with RDS credentials
+
+---
+
+### Step 6: Application Tier Deployment
+
+*(To be documented as you progress)*
+
+**Configuration:**
+```bash
+cd application-code/app-tier
+npm install
+node index.js
+```
+
+---
+
+### Step 7: Web Tier Deployment
+
+*(To be documented as you progress)*
+
+**Configuration:**
+```bash
+cd application-code/web-tier
+npm install
+npm run build
+```
+
+---
+
+### Step 8: Load Balancer Configuration
+
+*(To be documented as you progress)*
+
+Update `nginx.conf` with internal load balancer DNS
 
 ---
 
@@ -297,90 +629,6 @@ CREATE TABLE file_shares (
 
 ---
 
-## 🔧 Configuration & Deployment
-
-### Prerequisites
-1. AWS account with permissions for EC2, RDS, VPC, ELB, Auto Scaling
-2. Node.js 14+ and npm installed
-3. Aurora MySQL database instance
-4. Understanding of AWS networking (VPC, subnets, security groups)
-
-### Configuration Files
-
-#### 1. Database Configuration (`app-tier/DbConfig.js`)
-```javascript
-module.exports = Object.freeze({
-    DB_HOST : 'your-rds-endpoint.amazonaws.com',
-    DB_USER : 'admin',
-    DB_PWD : 'your-password',
-    DB_DATABASE : 'filesharing'
-});
-```
-
-#### 2. NGINX Configuration (`nginx.conf`)
-Update line 57 with your internal load balancer DNS:
-```nginx
-location /api/{
-    proxy_pass http://internal-lb-123456789.us-east-1.elb.amazonaws.com:80/;
-}
-```
-
-### Deployment Steps
-
-#### 1. Database Setup
-```bash
-# Connect to your Aurora MySQL instance
-mysql -h your-rds-endpoint.amazonaws.com -u admin -p
-
-# Run the setup script
-source DATABASE_SETUP.sql
-```
-
-#### 2. Application Tier Setup
-```bash
-cd application-code/app-tier
-
-# Install dependencies
-npm install
-
-# Start the server (runs on port 4000)
-node index.js
-```
-
-**Dependencies:**
-- `express` - Web framework
-- `mysql` - Database connector
-- `body-parser` - Request parsing
-- `cors` - Cross-origin resource sharing
-
-#### 3. Web Tier Setup
-```bash
-cd application-code/web-tier
-
-# Install dependencies
-npm install
-
-# Build for production
-npm run build
-
-# Copy build files to nginx directory
-sudo cp -r build/* /home/ec2-user/web-tier/build/
-```
-
-#### 4. NGINX Setup
-```bash
-# Copy nginx configuration
-sudo cp nginx.conf /etc/nginx/nginx.conf
-
-# Test configuration
-sudo nginx -t
-
-# Restart nginx
-sudo systemctl restart nginx
-```
-
----
-
 ## 🛠️ Technology Stack
 
 ### Frontend
@@ -403,6 +651,7 @@ sudo systemctl restart nginx
 - **AWS ELB** - Load balancing
 - **AWS Auto Scaling** - Automatic scaling
 - **AWS VPC** - Network isolation
+- **AWS S3** - Object storage (`file-sharing-bucket12`)
 
 ---
 
@@ -560,6 +809,15 @@ Monitor the following:
 **Files not uploading**
 - Check file size (may exceed body-parser limit)
 - Increase limit in `index.js`: `bodyParser.json({limit: '50mb'})`
+
+---
+
+## ⚠️ Known Issues & Problems
+
+### Lab Environment Limitations
+
+**Problem: Cannot create IAM roles in AWS Academy Lab**
+- AWS Academy lab environment restricts IAM role creation permissions
 
 ---
 
