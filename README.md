@@ -338,6 +338,173 @@ The routing setup ensures that public subnets have internet access while private
 
 ### Step 5: Security Groups
 
+Security groups act as virtual firewalls to control inbound and outbound traffic for AWS resources. This configuration implements defense-in-depth by layering security controls across each tier while maintaining the principle of least privilege.
+
+#### Security Group Overview
+
+| Security Group Name       | Purpose                                    | Protected Resources        |
+| ------------------------- | ------------------------------------------ | -------------------------- |
+| External-LB-SG            | Public-facing load balancer                | External ALB               |
+| Web-Tier-SG               | Web tier EC2 instances                     | Web tier instances         |
+| Internal-LB-SG            | Internal load balancer                     | Internal ALB               |
+| Private-Instance-SG       | Application tier EC2 instances             | App tier instances         |
+| Private-DB-SG             | Database tier                              | Aurora MySQL cluster       |
+
+---
+
+#### External Load Balancer Security Group
+
+**Name:** External-LB-SG
+
+**Purpose:** Protects the public-facing load balancer that serves incoming traffic from the internet.
+
+**Inbound Rules:**
+
+| Type | Protocol | Port | Source        | Description                     |
+| ---- | -------- | ---- | ------------- | ------------------------------- |
+| HTTP | TCP      | 80   | Your IP/32    | Allow HTTP from your IP         |
+
+**Justification:** Restricting access to your IP ensures only authorized testing traffic can reach the external load balancer while keeping it reachable from the internet.
+
+---
+
+#### Web Tier Security Group
+
+**Name:** Web-Tier-SG
+
+**Purpose:** Protects EC2 instances in the public web tier.
+
+**Inbound Rules:**
+
+| Type | Protocol | Port | Source          | Description                           |
+| ---- | -------- | ---- | --------------- | ------------------------------------- |
+| HTTP | TCP      | 80   | External-LB-SG  | Allow HTTP from external load balancer |
+| HTTP | TCP      | 80   | Your IP/32      | Allow HTTP from your IP for testing   |
+
+**Justification:**
+- First rule allows only the external load balancer to forward traffic to web tier instances, enforcing a controlled path
+- Second rule allows you to directly test the web tier without exposing it broadly
+
+---
+
+#### Internal Load Balancer Security Group
+
+**Name:** Internal-LB-SG
+
+**Purpose:** Protects the internal load balancer used to forward traffic from the web tier to the private app tier.
+
+**Inbound Rules:**
+
+| Type | Protocol | Port | Source       | Description                    |
+| ---- | -------- | ---- | ------------ | ------------------------------ |
+| HTTP | TCP      | 80   | Web-Tier-SG  | Allow HTTP from web tier       |
+
+**Justification:** This ensures that only authorized web tier instances can reach the internal load balancer, maintaining the isolation of the app tier from the public internet.
+
+---
+
+#### Private Instance Security Group
+
+**Name:** Private-Instance-SG
+
+**Purpose:** Protects EC2 instances in the private application tier.
+
+**Inbound Rules:**
+
+| Type        | Protocol | Port | Source          | Description                              |
+| ----------- | -------- | ---- | --------------- | ---------------------------------------- |
+| Custom TCP  | TCP      | 4000 | Internal-LB-SG  | Allow app traffic from internal LB       |
+| Custom TCP  | TCP      | 4000 | Your IP/32      | Allow app traffic from your IP for testing |
+
+**Justification:**
+- First rule ensures that only the internal load balancer can communicate with app instances on the application port
+- Second rule allows manual testing from your IP without compromising overall security
+
+---
+
+#### Private Database Security Group
+
+**Name:** Private-DB-SG
+
+**Purpose:** Protects private database instances.
+
+**Inbound Rules:**
+
+| Type         | Protocol | Port | Source              | Description                        |
+| ------------ | -------- | ---- | ------------------- | ---------------------------------- |
+| MySQL/Aurora | TCP      | 3306 | Private-Instance-SG | Allow database access from app tier |
+
+**Justification:** Only application tier instances are allowed to communicate with the database, enforcing strict isolation and securing sensitive data from direct public access.
+
+---
+
+#### How to Create Security Groups
+
+**Create External-LB-SG:**
+1. Navigate to EC2 Dashboard → Security Groups
+2. Click "Create security group"
+3. Name: `External-LB-SG`
+4. Description: "Security group for external load balancer"
+5. VPC: Select vpc-0eb2f3f126ab55220
+6. Add Inbound Rule: Type `HTTP`, Source `My IP`
+7. Click "Create security group"
+
+**Create Web-Tier-SG:**
+1. Click "Create security group"
+2. Name: `Web-Tier-SG`
+3. Description: "Security group for web tier instances"
+4. VPC: Select vpc-0eb2f3f126ab55220
+5. Add Inbound Rules:
+   - Type `HTTP`, Source `External-LB-SG`
+   - Type `HTTP`, Source `My IP`
+6. Click "Create security group"
+
+**Create Internal-LB-SG:**
+1. Click "Create security group"
+2. Name: `Internal-LB-SG`
+3. Description: "Security group for internal load balancer"
+4. VPC: Select vpc-0eb2f3f126ab55220
+5. Add Inbound Rule: Type `HTTP`, Source `Web-Tier-SG`
+6. Click "Create security group"
+
+**Create Private-Instance-SG:**
+1. Click "Create security group"
+2. Name: `Private-Instance-SG`
+3. Description: "Security group for app tier instances"
+4. VPC: Select vpc-0eb2f3f126ab55220
+5. Add Inbound Rules:
+   - Type `Custom TCP`, Port `4000`, Source `Internal-LB-SG`
+   - Type `Custom TCP`, Port `4000`, Source `My IP`
+6. Click "Create security group"
+
+**Create Private-DB-SG:**
+1. Click "Create security group"
+2. Name: `Private-DB-SG`
+3. Description: "Security group for database tier"
+4. VPC: Select vpc-0eb2f3f126ab55220
+5. Add Inbound Rule: Type `MySQL/Aurora`, Source `Private-Instance-SG`
+6. Click "Create security group"
+
+![Security Groups Configuration](application-code/images-revised/security-groups.png)
+
+---
+
+#### Traffic Flow Summary
+
+```
+Internet → External-LB-SG (port 80) → Web-Tier-SG (port 80) → Internal-LB-SG (port 80) → Private-Instance-SG (port 4000) → Private-DB-SG (port 3306)
+```
+
+This layered approach ensures:
+- **Defense in depth:** Multiple security layers protect each tier
+- **Least privilege:** Each component can only communicate with its immediate neighbors
+- **Isolation:** Database tier is completely isolated from public internet
+- **Controlled testing:** Your IP has limited access for testing without compromising security
+
+---
+
+### Step 6: Database Setup
+
 *(To be documented as you progress)*
 
 ---
