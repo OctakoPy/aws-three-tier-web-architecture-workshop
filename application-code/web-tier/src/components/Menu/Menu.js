@@ -20,7 +20,10 @@ const Menu = ({ open, ...props }) => {
               <Link to="/" tabIndex = {tabIndex} style = {{outline:"none",border:"none"}}><div style={{paddingBottom : "2em", float:"left"}}><span aria-hidden="true">🏠</span> Home</div></Link>
             </li>
             <li>
-              <Link to="/db" tabIndex = {tabIndex} style = {{outline:"none",border:"none"}}><div style={{paddingBottom : "2em", float:"left"}}><span aria-hidden="true">📋</span> DB Demo</div></Link>
+              <Link to="/login" tabIndex = {tabIndex} style = {{outline:"none",border:"none"}}><div style={{paddingBottom : "2em", float:"left"}}><span aria-hidden="true">🔐</span> Login</div></Link>
+            </li>
+            <li>
+              <Link to="/dashboard" tabIndex = {tabIndex} style = {{outline:"none",border:"none"}}><div style={{paddingBottom : "2em", float:"left"}}><span aria-hidden="true">📁</span> Dashboard</div></Link>
             </li>
           </ul>
         </nav>
