@@ -2,10 +2,10 @@ const dbcreds = require('./DbConfig');
 const mysql = require('mysql');
 
 const con = mysql.createConnection({
-    host: dbcreds.DB_HOST,
-    user: dbcreds.DB_USER,
-    password: dbcreds.DB_PWD,
-    database: dbcreds.DB_DATABASE
+    host: dbcreds.host,
+    user: dbcreds.user,
+    password: dbcreds.password,
+    database: dbcreds.database
 });
 
 // USER FUNCTIONS

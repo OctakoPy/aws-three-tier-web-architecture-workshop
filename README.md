@@ -853,3 +853,60 @@ pm2 save
 - **SSM connection:** Provides secure management without public IPs or SSH keys.
 
 ---
+
+### Step 12: Test App Tier
+
+After configuring and starting the Node.js backend application on the private app instances, the next step is to verify that the app is running correctly and can successfully connect to the Aurora RDS database.
+
+#### 1. Test Health Check Endpoint
+
+Open an SSM session to one of your private app instances (AZ1 or AZ2).
+Run the following command:
+
+```bash
+curl http://localhost:4000/health
+```
+
+**Expected Response:**
+```
+"This is the health check"
+```
+
+![Health Check Success](application-code/images-revised/health-check-success.png)
+
+**Justification:**
+- Confirms that the Node.js backend is running and reachable locally.
+- A simple health check helps isolate issues with the app before testing database connectivity.
+
+#### 2. Test Database Connection
+
+Once the health check passes, test whether the app can access the Aurora RDS database. Use the app's file list endpoint:
+
+```bash
+curl http://localhost:4000/file/list/1
+```
+
+**Expected Response (example):**
+```json
+{"files":[{"id":1,"filename":"example.txt","upload_date":"2025-11-29T07:05:35.000Z"}]}
+```
+
+![Database Connection Success](application-code/images-revised/database-connection-success.png)
+
+**Justification:**
+- Confirms that the app is able to connect to the Aurora MySQL database using the credentials in DbConfig.js.
+- Ensures networking, security groups, and private subnet routing are correctly configured.
+- Validates that the sample data inserted in the database is retrievable through the application API.
+
+#### 3. Confirmation
+
+If both endpoints return the expected results:
+- "This is the health check" for the health endpoint.
+- Database records for /file/list/1.
+
+Then the app tier is fully operational. This means:
+- App instances are running correctly with Node.js and PM2.
+- App is able to securely connect to the Aurora database.
+- Networking, IAM roles, security groups, and subnets are correctly configured.
+
+---
