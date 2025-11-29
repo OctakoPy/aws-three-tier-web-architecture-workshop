@@ -844,38 +844,6 @@ pm2 save
 - pm2 list confirms the process is running.
 - pm2 startup + pm2 save ensures the app starts automatically if the instance reboots.
 
-#### 7. Verification
-
-**a) Verify PM2 process**
-```bash
-pm2 list
-```
-Status should show online. Use pm2 logs if the app is errored.
-
-**b) Verify database connection**
-```bash
-mysql -h three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com -u yourusername -p
-USE webappdb;
-SHOW TABLES;
-SELECT * FROM users;
-SELECT * FROM files;
-SELECT * FROM file_shares;
-```
-
-Confirms the app can communicate with Aurora RDS. Shows all sample data you previously inserted:
-
-| Table       | Columns / Sample Values                                                                                    |
-| ----------- | ---------------------------------------------------------------------------------------------------------- |
-| users       | id: 1, username: testuser, password: password123, created_date: 2025-11-29 07:05:35                       |
-| files       | id: 1, user_id: 1, filename: example.txt, file_data: Hello world, upload_date: 2025-11-29 07:05:35        |
-| file_shares | id: 1, file_id: 1, shared_with_user_id: 1, shared_date: 2025-11-29 07:05:35                               |
-
-**c) Verify local app response**
-```bash
-curl http://localhost:4000
-```
-Should return a response from the Node.js app. Confirms the app is running and correctly connected to the database.
-
 #### Justification of Architecture Choices
 
 - **S3:** Central repository for app code, accessible from private subnets.
