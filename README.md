@@ -695,3 +695,61 @@ After deploying the private application instances, you connect to each instance 
 - Both AZ1 and AZ2 instances should independently demonstrate internet access.
 
 ---
+
+### Step 10: Configure Aurora RDS Database for File Sharing Application
+
+After deploying the Aurora RDS cluster, the database is configured using a private app instance.
+
+#### Steps
+
+1. **Install MySQL client on the EC2 instance**
+   ```bash
+   sudo yum install mysql -y
+   ```
+   This enables the instance to connect to the Aurora RDS cluster.
+
+2. **Connect to the Aurora RDS writer endpoint**
+   - Endpoint: three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com
+   - Connect using the MySQL CLI with the configured username and password.
+
+3. **Create the application database**
+   ```sql
+   CREATE DATABASE webappdb;
+   USE webappdb;
+   ```
+   webappdb will store all tables for the file sharing application.
+
+4. **Create required tables**
+   - users – stores application users with username, password, and creation date.
+   - files – stores uploaded files with references to the uploading user.
+   - file_shares – stores sharing relationships between files and users, enforcing unique sharing rules.
+   - Indexes are created on user_id and file_id columns for performance.
+
+5. **Verify tables**
+   ```sql
+   SHOW TABLES;
+   ```
+   Confirms presence of: users, files, file_shares.
+
+6. **Insert sample data for testing**
+   - Insert a test user, file, and file share entry.
+   - Verify with SELECT * FROM ... queries.
+
+#### Sample data:
+
+| Table       | Columns / Sample Values                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------- |
+| users       | id: 1, username: testuser, password: password123, created_date: 2025-11-29 07:05:35                       |
+| files       | id: 1, user_id: 1, filename: example.txt, file_data: Hello world, upload_date: 2025-11-29 07:05:35        |
+| file_shares | id: 1, file_id: 1, shared_with_user_id: 1, shared_date: 2025-11-29 07:05:35                               |
+
+![Aurora Database Configuration](application-code/images-revised/aurora-database-configuration.png)
+
+#### Justification
+
+- Writer endpoint is used for creating and modifying data; the reader endpoint is reserved for read-only queries and scaling.
+- Running commands from a private app instance ensures secure access through the VPC and NAT gateway.
+- Foreign keys and indexes ensure data integrity and query performance.
+- Verification of tables and sample data confirms the database is correctly initialized and ready for application use.
+
+---
