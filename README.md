@@ -641,3 +641,57 @@ The LabInstanceProfile includes the AmazonSSMManagedInstanceCore policy, which a
 - Fully supported for private instances — since these instances are in private subnets without public IPs, direct SSH via a key would not work anyway.
 
 ---
+
+### Step 9: Connect to App Instances & Verify NAT Gateway Connectivity
+
+After deploying the private application instances, you connect to each instance to verify network and NAT gateway setup.
+
+#### Steps
+
+1. **Connect via Session Manager (browser-based):**
+   - Open EC2 → Instances in the AWS console.
+   - Select a running instance and click Connect → Session Manager → Connect.
+   - This establishes a secure session to the instance without requiring a public IP.
+
+2. **Switch to the ec2-user account:**
+   ```bash
+   sudo -su ec2-user
+   ```
+   Ensures you are using the standard Amazon Linux 2 user environment.
+
+3. **Verify internet connectivity via NAT gateway:**
+   ```bash
+   ping -c 4 8.8.8.8
+   ```
+   Confirms that private instances can access the internet for updates or API calls.
+   Even though the instances have no public IP, outbound traffic is routed through the NAT gateway in their respective public subnets.
+
+4. **Optional DNS check:**
+   ```bash
+   nslookup google.com
+   ```
+   Ensures DNS resolution works through the NAT gateway.
+
+5. **Repeat for the second instance:**
+   - Connect via Session Manager
+   - Switch to ec2-user
+   - Ping 8.8.8.8 to confirm connectivity
+
+![App Instance AZ1 Connection](application-code/images-revised/app-instance-az1-connection.png)
+
+![App Instance AZ2 Connection](application-code/images-revised/app-instance-az2-connection.png)
+
+#### Design Justification
+
+- **Private Subnets:** Instances remain private to prevent direct internet exposure, enhancing security.
+- **NAT Gateway:** Provides controlled outbound internet access for software updates and external API calls.
+- **Session Manager:** Allows secure browser-based access to private instances without public IPs.
+- **High Availability:** Instances in two separate availability zones verify NAT and routing in both subnets.
+
+#### Key Points
+
+- Do not use EC2 Instance Connect; private subnets prevent public connectivity.
+- Ping success confirms routing tables, NAT gateways, and subnet associations are correctly configured.
+- Both AZ1 and AZ2 instances should independently demonstrate internet access.
+
+---
