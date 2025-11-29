@@ -1,6 +1,6 @@
-module.exports = Object.freeze({
-    DB_HOST : '',
-    DB_USER : '',
-    DB_PWD : '',
-    DB_DATABASE : ''
-});
+module.exports = {
+  host: "three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com",
+  user: "yourusername",
+  password: "yourpassword",
+  database: "webappdb"
+};

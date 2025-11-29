@@ -753,3 +753,135 @@ After deploying the Aurora RDS cluster, the database is configured using a priva
 - Verification of tables and sample data confirms the database is correctly initialized and ready for application use.
 
 ---
+
+### Step 11: Configure App Instance
+
+After deploying the EC2 instances for the app tier, the next step is to configure them to run the Node.js backend application and connect to the Aurora RDS database.
+
+#### 1. Upload app-tier to S3
+
+- Open the S3 console and navigate to your bucket: `file-sharing-bucket12`.
+- Upload your local app-tier folder to the bucket by selecting Upload → Add folder → app-tier → Upload.
+- Verify that all files, including DbConfig.js, are present.
+
+![S3 App Tier Upload](application-code/images-revised/s3-app-tier-upload.png)
+
+**Justification:**
+- Using S3 allows your private app instances to securely download application code without exposing the instances to the public internet.
+- Storing code in S3 simplifies deployments and ensures reproducibility.
+
+#### 2. Update Database Credentials
+
+- Open app-tier/DbConfig.js locally.
+- Fill in the database configuration:
+  - Hostname: three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com
+  - User: your Aurora RDS username
+  - Password: your Aurora RDS password
+  - Database: webappdb
+- Save the file.
+
+**Justification:**
+- The app needs these credentials to connect to the database.
+- For simplicity, credentials are stored in the configuration file; in production, AWS Secrets Manager or Parameter Store should be used.
+
+#### 3. Connect to App Instance via SSM
+
+- Open an SSM session to the private app instance (AZ1 or AZ2).
+- Ensure your IAM role (LabRole) has permissions for SSM and S3 access.
+
+**Justification:**
+- SSM provides secure shell access to private instances without needing public IPs or SSH keys.
+
+#### 4. Install Node.js and PM2
+
+Run the following commands in the SSM session:
+
+```bash
+# Install NVM
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+source ~/.bashrc
+
+# Install Node.js v16 and use it
+nvm install 16
+nvm use 16
+
+# Install PM2 globally
+npm install -g pm2
+```
+
+**Explanation & Justification:**
+- Node.js v16 is compatible with the app code.
+- NVM allows easy switching of Node.js versions in the future.
+- PM2 ensures the app runs continuously, even if the instance reboots or the session closes.
+
+#### 5. Download App Code from S3
+
+```bash
+cd ~/
+aws s3 cp s3://file-sharing-bucket12/app-tier/ app-tier --recursive
+cd ~/app-tier
+npm install
+```
+
+**Explanation & Justification:**
+- This retrieves the latest application code from S3.
+- npm install ensures all dependencies defined in package.json are installed.
+
+#### 6. Start App with PM2
+
+```bash
+pm2 start index.js
+pm2 list
+pm2 startup
+# Copy the command PM2 outputs and execute it
+pm2 save
+```
+
+![PM2 App Process Online](application-code/images-revised/pm2-app-process-online.png)
+
+**Explanation & Justification:**
+- pm2 start index.js launches the backend application.
+- pm2 list confirms the process is running.
+- pm2 startup + pm2 save ensures the app starts automatically if the instance reboots.
+
+#### 7. Verification
+
+**a) Verify PM2 process**
+```bash
+pm2 list
+```
+Status should show online. Use pm2 logs if the app is errored.
+
+**b) Verify database connection**
+```bash
+mysql -h three-tier-app-db-cluster.cluster-cnyoswgyplvb.us-east-1.rds.amazonaws.com -u yourusername -p
+USE webappdb;
+SHOW TABLES;
+SELECT * FROM users;
+SELECT * FROM files;
+SELECT * FROM file_shares;
+```
+
+Confirms the app can communicate with Aurora RDS. Shows all sample data you previously inserted:
+
+| Table       | Columns / Sample Values                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------- |
+| users       | id: 1, username: testuser, password: password123, created_date: 2025-11-29 07:05:35                       |
+| files       | id: 1, user_id: 1, filename: example.txt, file_data: Hello world, upload_date: 2025-11-29 07:05:35        |
+| file_shares | id: 1, file_id: 1, shared_with_user_id: 1, shared_date: 2025-11-29 07:05:35                               |
+
+**c) Verify local app response**
+```bash
+curl http://localhost:4000
+```
+Should return a response from the Node.js app. Confirms the app is running and correctly connected to the database.
+
+#### Justification of Architecture Choices
+
+- **S3:** Central repository for app code, accessible from private subnets.
+- **Private app instances:** Keep backend isolated from the internet for security.
+- **PM2:** Ensures reliability and automatic restart on failure or reboot.
+- **Node.js v16:** Ensures compatibility with app code.
+- **SSM connection:** Provides secure management without public IPs or SSH keys.
+
+---
