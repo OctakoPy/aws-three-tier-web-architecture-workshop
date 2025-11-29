@@ -596,3 +596,48 @@ A MySQL-compatible Amazon Aurora cluster is deployed to support the private data
 - **Security:** Access is controlled through the Private-DB Security Group, allowing only authorized app-tier instances to communicate with the database.
 
 ---
+
+### Step 8: App Instance Deployment
+
+Two application-tier EC2 instances are deployed in private subnets to host the web/application layer of the three-tier architecture. Instances are distributed across two Availability Zones for high availability and fault tolerance.
+
+#### Instance Configuration
+
+| Variable / Resource     | Value                                                                     | Explanation                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| VPC ID                  | vpc-0eb2f3f126ab55220                                                     | Ensures the instance is launched in the correct network segment that contains our three-tier architecture resources.                             |
+| Private App Subnets     | subnet-0818b9d3244d1e8df (AZ1), subnet-02dac064e831ff206 (AZ2)           | Launching in two subnets across different AZs provides redundancy, ensuring the application remains available if one AZ fails.                  |
+| Security Group          | sg-02dce20f1116cf9bc (PrivateInstanceSG)                                 | Restricts inbound traffic to only allow authorized sources from the internal network, enhancing security for private instances.                  |
+| IAM Instance Profile    | LabInstanceProfile                                                        | Grants EC2 instances the necessary permissions to access AWS resources (e.g., SSM, S3) securely without embedding credentials.                  |
+| AMI ID                  | ami-0c02fb55956c7d316 (Amazon Linux 2, Kernel 5.10)                      | Provides a standard, supported OS image for the instances, ensuring compatibility with AWS services and security updates.                        |
+| Instance Type           | t2.micro                                                                  | A small instance type suitable for dev/test workloads in AWS Academy labs; cost-effective while sufficient for this application tier.           |
+| Auto-assign Public IP   | Disabled                                                                  | Instances remain in private subnets and are not exposed to the internet, enforcing network isolation.                                            |
+| Tags                    | Name=App-Instance-AZ1 / App-Instance-AZ2                                 | Helps identify instances easily in the console and for automation purposes.                                                                      |
+
+#### Deployment Details
+
+- **AZ1 instance:** Subnet subnet-0818b9d3244d1e8df, Private IP 10.0.2.76 (running)
+- **AZ2 instance:** Subnet subnet-02dac064e831ff206, Private IP 10.0.102.62 (running)
+
+![App Instances Deployment](application-code/images-revised/app-instances-deployment.png)
+
+#### Design Justification
+
+- **High Availability:** Two instances in separate AZs ensure the application tier continues to operate if one AZ fails.
+- **Private Placement:** Instances remain private, limiting exposure to the internet and enforcing the three-tier security model.
+- **IAM Profile Usage:** Attaching LabInstanceProfile provides necessary permissions securely without using hard-coded credentials.
+- **Cost-Effective Dev/Test Setup:** t2.micro instances are suitable for lab and testing environments while minimizing AWS costs.
+- **Standard AMI:** Using Amazon Linux 2 ensures OS compatibility, reliability, and up-to-date security patches.
+
+#### Why we proceed without a key pair
+
+No key pair is needed for AWS Academy lab instances because we use AWS Systems Manager (SSM) to access the EC2 instances.
+
+The LabInstanceProfile includes the AmazonSSMManagedInstanceCore policy, which allows secure shell access via Session Manager without requiring SSH keys.
+
+**Benefits of skipping a key pair:**
+- Simplifies access — no need to manage .pem files or distribute keys.
+- Maintains security — reduces risk of leaked SSH keys.
+- Fully supported for private instances — since these instances are in private subnets without public IPs, direct SSH via a key would not work anyway.
+
+---
