@@ -1028,3 +1028,144 @@ In the EC2 console, navigate to Auto Scaling Groups → Create Auto Scaling Grou
 - This confirms the auto-healing and scaling functionality of the app tier.
 
 ---
+
+### Step 14: Web Tier Deployment
+
+After the app tier is fully configured and operational, the next step is to deploy the web tier, which will host the front-end React application and communicate with the internal load balancer to reach the app tier.
+
+#### 1. Update NGINX Configuration
+
+Open the application-code/nginx.conf file from your local repository.
+
+Scroll down to line 58 and replace [INTERNAL-LOADBALANCER-DNS] with your internal load balancer DNS entry:
+```
+internal-InternalAppALB-186449520.us-east-1.elb.amazonaws.com
+```
+
+![Internal Load Balancer DNS Name](application-code/images-revised/internal-lb-dns-name.png)
+
+Upload the updated nginx.conf file and the web-tier folder to your S3 bucket (file-sharing-bucket12).
+
+![S3 Web Tier Upload](application-code/images-revised/s3-web-tier-upload.png)
+
+**Justification:**
+- The NGINX configuration needs the internal load balancer DNS to route API requests from the front-end to the private app tier instances.
+- Storing the updated configuration in S3 allows secure retrieval from the web tier EC2 instance without exposing sensitive settings.
+
+#### 2. Launch Web Tier EC2 Instance
+
+Open the EC2 console and click Launch Instances.
+
+Configure the instance:
+- **Name:** WebTierInstance
+- **AMI:** Amazon Linux 2023 (kernel-6.1) (deviation: original guide suggested Amazon Linux 2)
+- **Instance Type:** t3.micro (deviation: original guide suggested t2.micro; t3 is cheaper and fully compatible)
+- **Key Pair:** Proceed without a key pair
+- **Subnet:** Public-Web-Subnet-AZ1
+- **Security Group:** WebTierSG
+- **Auto-assign Public IP:** Enabled
+- **IAM Role:** LabInstanceProfile
+
+**Justification:**
+- Amazon Linux 2023 was used because the specified Amazon Linux 2 AMI was unavailable.
+- t3.micro was chosen for cost efficiency while still meeting resource requirements.
+- Public subnet and auto-assigned public IP allow the web tier to serve content to the internet.
+- LabInstanceProfile provides access to S3 for code and configuration retrieval.
+
+#### 3. Connect to Web Tier and Verify Internet Access
+
+Connect via SSM to the new web tier instance.
+
+Switch to the ec2-user for consistent permissions:
+```bash
+sudo -su ec2-user
+```
+
+Test internet connectivity:
+```bash
+ping 8.8.8.8
+```
+
+![Web Tier Ping Success](application-code/images-revised/web-tier-ping-success.png)
+
+**Justification:**
+- Ensures the instance has outbound internet access to download Node.js, NPM packages, and web assets.
+
+#### 4. Install Node.js and Build Front-End
+
+Install NVM and Node.js 24 (deviation: original guide used Node 16, which was incompatible with the React app):
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+source ~/.bashrc
+nvm install 24
+nvm use 24
+nvm alias default 24
+```
+
+Download the web-tier code from S3:
+```bash
+cd ~/
+aws s3 cp s3://file-sharing-bucket12/web-tier/ web-tier --recursive
+```
+
+Build the React app:
+```bash
+cd ~/web-tier
+npm install
+npm run build
+```
+
+**Justification:**
+- Node 24 is required because the front-end React application specifies a minimum Node version of 24.
+- Using NVM allows flexible Node version management without affecting system packages.
+- Building the React app generates static files served by NGINX.
+
+#### 5. Install and Configure NGINX
+
+Amazon Linux 2023 uses dnf instead of amazon-linux-extras, so installation commands differ from the original guide.
+
+```bash
+# Install NGINX
+sudo dnf install nginx -y
+
+# Replace default configuration with S3-uploaded file
+cd /etc/nginx
+sudo rm nginx.conf
+sudo aws s3 cp s3://file-sharing-bucket12/nginx.conf .
+
+# Start NGINX and enable on boot
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+Set permissions for the web app folder:
+```bash
+chmod -R 755 /home/ec2-user
+```
+
+**Justification:**
+- NGINX serves the static front-end files and forwards API calls to the internal app tier load balancer.
+- Updating the configuration ensures correct routing to the app tier.
+- Amazon Linux 2023 requires dnf instead of amazon-linux-extras for package installation.
+- Setting permissions ensures NGINX can read and serve files correctly.
+
+#### 6. Verification
+
+Open the public IP of the web tier instance in a browser.
+
+You should see your React front-end application.
+
+Test database functionality through the UI; adding or listing entries should work, confirming connectivity to the app and database tiers.
+
+![Web App Dashboard Access](application-code/images-revised/web-app-dashboard-access.png)
+
+#### Architecture Notes & Justification
+
+- **Public Web Tier:** Exposed to the internet to serve front-end content.
+- **NGINX:** Serves static React files and forwards API requests to the internal ALB.
+- **Node.js 24:** Ensures compatibility with React application requirements.
+- **S3:** Central repository for code and configuration, simplifying deployments.
+- **Amazon Linux 2023 / dnf:** Modern OS with long-term support and updated package management.
+
+---
