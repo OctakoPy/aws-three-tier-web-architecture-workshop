@@ -1027,6 +1027,50 @@ In the EC2 console, navigate to Auto Scaling Groups → Create Auto Scaling Grou
 - To test, you can manually terminate one instance and observe that a new one is automatically created by the ASG.
 - This confirms the auto-healing and scaling functionality of the app tier.
 
+#### 5. Manual Target Registration (Troubleshooting Step)
+
+If the web tier cannot connect to the app tier through the internal load balancer, you may need to manually register the app tier instances with the target group:
+
+**Note:** This step may need to be repeated every time you restart your AWS Academy lab session, as lab environments may not persist target group registrations.
+
+```bash
+# First, get your target group ARN
+aws elbv2 describe-target-groups --names AppTierTargetGroup
+
+# Update the target registrations to use port 4000
+aws elbv2 register-targets \
+  --target-group-arn <your-target-group-arn> \
+  --targets Id=i-0510c3f349add799e,Port=4000 Id=i-02298811dd06f43c7,Port=4000
+```
+
+**Example with specific ARN:**
+```bash
+aws elbv2 register-targets \
+  --target-group-arn arn:aws:elasticloadbalancing:us-east-1:618375509227:targetgroup/AppTierTargetGroup/a32c67ecfe5a42b7 \
+  --targets Id=i-0510c3f349add799e,Port=4000 Id=i-02298811dd06f43c7,Port=4000
+```
+
+**Why this might be needed:**
+- **Auto Scaling Group Integration Issue:** Sometimes the ASG doesn't automatically attach new instances to the target group due to timing issues during creation or misconfiguration in the ASG target group settings.
+- **Target Group Health Checks:** The instances may have launched but failed initial health checks, preventing automatic registration.
+- **Launch Template Configuration:** If the launch template doesn't include proper user data to start the Node.js application automatically, instances won't pass health checks.
+- **Security Group Timing:** Temporary security group propagation delays can cause initial registration failures.
+- **AWS Academy Lab Environment:** Lab sessions may not maintain target group registrations between restarts, requiring manual re-registration.
+
+**Justification for Manual Registration:**
+- Ensures immediate connectivity between web and app tiers for testing purposes
+- Bypasses any ASG integration issues that may occur in lab environments
+- Provides explicit control over which instances are serving traffic
+- Useful for troubleshooting connectivity issues between tiers
+- **Required for AWS Academy labs:** Lab environment limitations may necessitate this step after each session restart
+
+**Long-term Solution:**
+In production environments, this should be resolved by:
+- Ensuring proper ASG target group configuration
+- Adding user data scripts to launch templates for automatic app startup
+- Implementing proper health check endpoints
+- Using AWS CloudFormation or Terraform for consistent infrastructure deployment
+
 ---
 
 ### Step 14: Web Tier Deployment
