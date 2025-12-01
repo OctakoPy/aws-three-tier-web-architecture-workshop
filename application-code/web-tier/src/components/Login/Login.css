@@ -5,16 +5,16 @@
     min-height: 100vh;
     padding: 20px;
     background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    color: #00d4ff;
+    color: #00ff41;
 }
 
 .login-box {
-    background: rgba(0, 212, 255, 0.1);
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    background: rgba(0, 255, 65, 0.1);
+    border: 2px solid rgba(0, 255, 65, 0.3);
     padding: 40px;
     border-radius: 15px;
     box-shadow: 
-        0 0 20px rgba(0, 212, 255, 0.3),
+        0 0 20px rgba(0, 255, 65, 0.3),
         0 4px 15px rgba(0, 0, 0, 0.3);
     min-width: 350px;
     backdrop-filter: blur(10px);
@@ -25,11 +25,8 @@
     font-size: 2.2rem;
     font-weight: bold;
     text-align: center;
-    color: #00d4ff;
-    text-shadow: 
-        0 0 5px #00d4ff,
-        0 0 10px #00d4ff,
-        0 0 15px #00d4ff;
+    color: #00ff41;
+    text-shadow: 0 0 3px #00ff41;
     letter-spacing: 2px;
 }
 
@@ -41,10 +38,10 @@
     width: 100%;
     padding: 15px;
     font-size: 16px;
-    border: 2px solid rgba(0, 212, 255, 0.5);
+    border: 2px solid rgba(0, 255, 65, 0.5);
     border-radius: 8px;
-    background: rgba(0, 212, 255, 0.05);
-    color: #00d4ff;
+    background: rgba(0, 255, 65, 0.05);
+    color: #00ff41;
     box-sizing: border-box;
     font-weight: 500;
     transition: all 0.3s ease;
@@ -52,15 +49,13 @@
 
 .form-input:focus {
     outline: none;
-    border-color: #00d4ff;
-    box-shadow: 
-        0 0 10px rgba(0, 212, 255, 0.5),
-        inset 0 0 5px rgba(0, 212, 255, 0.1);
-    background: rgba(0, 212, 255, 0.1);
+    border-color: #00ff41;
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+    background: rgba(0, 255, 65, 0.1);
 }
 
 .form-input::placeholder {
-    color: rgba(0, 212, 255, 0.6);
+    color: rgba(0, 255, 65, 0.6);
     font-weight: 400;
 }
 
@@ -69,22 +64,20 @@
     padding: 15px;
     font-size: 16px;
     font-weight: bold;
-    color: #00d4ff;
-    background: rgba(0, 212, 255, 0.2);
-    border: 2px solid #00d4ff;
+    color: #00ff41;
+    background: rgba(0, 255, 65, 0.2);
+    border: 2px solid #00ff41;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-shadow: 0 0 5px #00d4ff;
+    text-shadow: 0 0 2px #00ff41;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
 .btn-primary:hover {
-    background: rgba(0, 212, 255, 0.3);
-    box-shadow: 
-        0 0 15px rgba(0, 212, 255, 0.6),
-        0 0 25px rgba(0, 212, 255, 0.3);
+    background: rgba(0, 255, 65, 0.3);
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
     transform: translateY(-2px);
 }
 
@@ -95,37 +88,35 @@
 .message {
     margin: 20px 0;
     padding: 12px;
-    background: rgba(0, 212, 255, 0.1);
-    border: 1px solid rgba(0, 212, 255, 0.3);
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid rgba(0, 255, 65, 0.3);
     border-radius: 8px;
     text-align: center;
     font-size: 14px;
     font-weight: 500;
-    color: #00d4ff;
-    text-shadow: 0 0 5px rgba(0, 212, 255, 0.8);
+    color: #00ff41;
+    text-shadow: 0 0 2px rgba(0, 255, 65, 0.5);
 }
 
 .toggle-link {
     margin-top: 25px;
     text-align: center;
     font-size: 14px;
-    color: rgba(0, 212, 255, 0.8);
+    color: rgba(0, 255, 65, 0.8);
     font-weight: 500;
 }
 
 .link {
-    color: #00d4ff;
+    color: #00ff41;
     cursor: pointer;
     text-decoration: underline;
     font-weight: bold;
-    text-shadow: 0 0 3px #00d4ff;
+    text-shadow: 0 0 1px #00ff41;
     transition: all 0.3s ease;
 }
 
 .link:hover {
     color: #ffffff;
-    text-shadow: 
-        0 0 5px #00d4ff,
-        0 0 10px #00d4ff;
+    text-shadow: 0 0 3px #00ff41;
     text-decoration: none;
 }
