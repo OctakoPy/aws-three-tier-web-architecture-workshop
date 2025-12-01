@@ -3,6 +3,7 @@
 A secure, scalable file-sharing application built on AWS three-tier architecture with user authentication, file upload/download, and file sharing capabilities.
 
 ## 📋 Table of Contents
+- [Overview](#-overview)
 - [Features](#-features)
 - [Architecture Overview](#️-architecture-overview)
 - [Setup Guide](#-setup-guide)
@@ -24,6 +25,48 @@ A secure, scalable file-sharing application built on AWS three-tier architecture
 - [Monitoring & Logs](#-monitoring--logs)
 - [Troubleshooting](#-troubleshooting)
 - [Known Issues](#️-known-issues--problems)
+
+---
+
+## 📊 Overview
+
+### VPC Inventory
+
+| **VPC ID**             | **CIDR**      | **IPv6 CIDR** | **State**   | **Is Default** | **Tenancy** | **DHCP Options**           | **Tags**                                      |
+|-----------------------|---------------|---------------|-------------|----------------|-------------|----------------------------|----------------------------------------------|
+| vpc-0eb2f3f126ab55220 | 10.0.0.0/16    | None          | available   | False          | default     | dopt-0c746f4cf562051a5     | Name = file-sharing-vpc12                    |
+
+### Subnets in VPC vpc-0eb2f3f126ab55220
+
+| **Subnet ID**            | **CIDR**        | **AZ**        | **Public IP Mapping** | **State**   | **ARN**                                                                                   | **Name Tag**                 |
+|-------------------------|-----------------|--------------|----------------------|-------------|-------------------------------------------------------------------------------------------|-----------------------------|
+| subnet-03a2e3358432a268b | 10.0.101.0/24   | us-east-1b   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-03a2e3358432a268b                        | Public-Web-Subnet-AZ2       |
+| subnet-08cf1139c7978f3b3 | 10.0.1.0/24     | us-east-1a   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-08cf1139c7978f3b3                        | Public-Web-Subnet-AZ1       |
+| subnet-02dac064e831ff206 | 10.0.102.0/24   | us-east-1b   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-02dac064e831ff206                        | Private-App-Subnet-AZ2      |
+| subnet-0818b9d3244d1e8df | 10.0.2.0/24     | us-east-1a   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-0818b9d3244d1e8df                        | Private-App-Subnet-AZ1      |
+| subnet-0e99f649f9a486b41 | 10.0.103.0/24   | us-east-1b   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-0e99f649f9a486b41                        | Private-DB-Subnet-AZ2       |
+| subnet-0381b1f52f14b7ac7 | 10.0.3.0/24     | us-east-1a   | False                | available   | arn:aws:ec2:us-east-1:618375509227:subnet/subnet-0381b1f52f14b7ac7                        | Private-DB-Subnet-AZ1       |
+
+### Security Groups
+
+| **SG Name**            | **SG ID**               | **VPC ID**                 | **VPC Name**              | **Inbound Rules**                                              | **Outbound Rules**            |
+|-----------------------|-------------------------|----------------------------|---------------------------|----------------------------------------------------------------|-------------------------------|
+| Private-DB-SG         | sg-03bfd9f60f77fb7b4    | vpc-0eb2f3f126ab55220      | file-sharing-vpc12        | TCP 3306 from sg-02dce20f1116cf9bc                            | All traffic to 0.0.0.0/0      |
+| Web-Tier-SG           | sg-050658b698e6e1e3b    | vpc-0eb2f3f126ab55220      | file-sharing-vpc12        | TCP 80 from 161.142.150.245/32<br>TCP 80 from sg-0839a60d4d185c5cf | All traffic to 0.0.0.0/0      |
+| Internal-LB-SG        | sg-05f19c3519e937606    | vpc-0eb2f3f126ab55220      | file-sharing-vpc12        | TCP 80 from sg-050658b698e6e1e3b                              | All traffic to 0.0.0.0/0      |
+| External-LB-SG        | sg-0839a60d4d185c5cf    | vpc-0eb2f3f126ab55220      | file-sharing-vpc12        | TCP 80 from 161.142.150.245/32                                | All traffic to 0.0.0.0/0      |
+| Private-Instance-SG   | sg-02dce20f1116cf9bc    | vpc-0eb2f3f126ab55220      | file-sharing-vpc12        | TCP 4000 from 161.142.150.245/32<br>TCP 4000 from sg-05f19c3519e937606 | All traffic to 0.0.0.0/0      |
+| HTTP-Only-SG          | sg-0ae645fb5d82b154f    | vpc-07b138bd9f6691326      | default                   | TCP 22 from 0.0.0.0/0                                         | All traffic to 0.0.0.0/0      |
+
+### EC2 Instances
+
+| **Instance ID**        | **Name**            | **Instance Type** | **State**  | **Private IP** | **Public IP**   | **Subnet ID**                | **VPC ID**                | **Security Groups**      | **Key Name** | **Platform** |
+|------------------------|-------------------|-----------------|-----------|---------------|----------------|------------------------------|---------------------------|-------------------------|-------------|--------------|
+| i-08f85d5c692e64455   | App-Instance-AZ2  | t2.micro        | running   | 10.0.102.62   | None           | subnet-02dac064e831ff206     | vpc-0eb2f3f126ab55220    | Private-Instance-SG     | None        | None         |
+| i-0566c65bdba2028df   | None              | t2.micro        | running   | 10.0.102.94   | None           | subnet-02dac064e831ff206     | vpc-0eb2f3f126ab55220    | Private-Instance-SG     | None        | None         |
+| i-099397bd021944d6e   | App-Instance-AZ1  | t2.micro        | running   | 10.0.2.76     | None           | subnet-0818b9d3244d1e8df     | vpc-0eb2f3f126ab55220    | Private-Instance-SG     | None        | None         |
+| i-06a9160fa9453e14f   | None              | t2.micro        | running   | 10.0.2.244    | None           | subnet-0818b9d3244d1e8df     | vpc-0eb2f3f126ab55220    | Private-Instance-SG     | None        | None         |
+| i-0ee4d466662104109   | AppLayer          | t3.micro        | running   | 10.0.1.191    | 3.239.217.46   | subnet-08cf1139c7978f3b3     | vpc-0eb2f3f126ab55220    | Web-Tier-SG             | None        | None         |
 
 ---
 
@@ -908,5 +951,74 @@ Then the app tier is fully operational. This means:
 - App instances are running correctly with Node.js and PM2.
 - App is able to securely connect to the Aurora database.
 - Networking, IAM roles, security groups, and subnets are correctly configured.
+
+---
+
+### Step 13: Internal Load Balancer, Launch Template, and Auto Scaling Group
+
+After verifying that the app tier instances are running and able to connect to the database, the next step is to make the app tier highly available and scalable. This involves creating an internal load balancer, a launch template, and an Auto Scaling Group (ASG).
+
+#### 1. Internal Load Balancer (ALB)
+
+In the EC2 console, navigate to Load Balancers under Load Balancing → Create Load Balancer.
+
+- Select Application Load Balancer.
+- Configure the ALB:
+  - **Name:** InternalAppALB
+  - **Scheme:** Internal (private facing)
+  - **VPC:** Select your lab VPC (vpc-0eb2f3f126ab55220)
+  - **Subnets:** Private app tier subnets (subnet-0818b9d3244d1e8df and subnet-02dac064e831ff206)
+  - **Security Group:** Use the App Tier SG (sg-02dce20f1116cf9bc)
+  - **IP Address Type:** IPv4
+- Create a listener to forward HTTP traffic on port 80 to your previously created target group (AppTierTargetGroup).
+
+**Justification:**
+- Internal ALB allows the web tier to route traffic to private app tier instances securely.
+- Using private subnets keeps the backend isolated from the internet.
+- Listener on port 80 forwards requests to the Node.js app running on port 4000 in the target group.
+
+#### 2. Launch Template
+
+Before creating the Auto Scaling Group, create a Launch Template:
+
+In the EC2 console, navigate to Launch Templates → Create Launch Template.
+
+- Configure the template:
+  - **Name:** AppTierLaunchTemplate
+  - **AMI:** Use the previously created App Tier AMI
+  - **Instance Type:** t2.micro
+  - **Security Group:** App Tier SG (sg-02dce20f1116cf9bc)
+  - **IAM Role:** LabInstanceProfile
+  - **Key Pair & Network Settings:** Leave blank (configured in ASG)
+
+**Justification:**
+- Launch Template ensures consistent configuration of app tier instances.
+- Separates instance configuration from ASG logic, allowing easier scaling and management.
+
+#### 3. Auto Scaling Group (ASG)
+
+In the EC2 console, navigate to Auto Scaling Groups → Create Auto Scaling Group.
+
+- Configure the ASG:
+  - **Name:** AppTierASG
+  - **Launch Template:** AppTierLaunchTemplate
+  - **VPC:** Select the lab VPC
+  - **Subnets:** Private app tier subnets (subnet-0818b9d3244d1e8df, subnet-02dac064e831ff206)
+  - **Target Group:** Attach the internal ALB target group (AppTierTargetGroup)
+  - **Capacity:** Desired = 2, Min = 2, Max = 2
+- Skip scaling policies for now and create the ASG.
+
+![Internal ALB with Instances Running](application-code/images-revised/internal-alb-instances-running.png)
+
+**Justification:**
+- Ensures high availability of the app tier by maintaining 2 running instances.
+- Integrates with the internal ALB for traffic distribution.
+- Automatically replaces failed instances, providing resilience without manual intervention.
+
+#### 4. Verification
+
+- After creation, the ASG will launch 2 new app tier instances.
+- To test, you can manually terminate one instance and observe that a new one is automatically created by the ASG.
+- This confirms the auto-healing and scaling functionality of the app tier.
 
 ---
