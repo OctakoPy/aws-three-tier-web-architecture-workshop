@@ -10,9 +10,9 @@ import Home from './components/Home/Home'
 import Login from './components/Login/Login'
 import {
   HashRouter as Router,
-  Switch,
+  Routes,
   Route,
-  Redirect
+  Navigate
 } from "react-router-dom";
 
 
@@ -40,18 +40,16 @@ function App() {
             <Burger open={open} setOpen={setOpen} aria-controls={menuId} />
             <Router>
               <div>
-            <Menu open={open} setOpen={setOpen} id={menuId} />
-            <Switch>
-          <Route path="/dashboard">
-            {user ? <Dashboard user={user} onLogout={handleLogout} /> : <Redirect to="/login" />}
-          </Route>
-          <Route path="/login">
-            {user ? <Redirect to="/dashboard" /> : <Login onLogin={handleLogin} />}
-          </Route>
-          <Route path="/">
-            <Home/>
-          </Route>
-        </Switch>
+            <Menu open={open} setOpen={setOpen} id={menuId} user={user} onLogout={handleLogout} />
+            <Routes>
+          <Route path="/dashboard" element={
+            user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />
+          } />
+          <Route path="/login" element={
+            user ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />
+          } />
+          <Route path="/" element={<Home/>} />
+        </Routes>
         </div>
         </Router>
           </FocusLock>

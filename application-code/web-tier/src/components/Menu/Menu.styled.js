@@ -12,11 +12,15 @@ export const StyledMenu = styled.nav`
   position: absolute;
   top: 0;
   left: 0;
+  width: 300px;
+  max-width: 80vw;
   transition: transform 0.3s ease-in-out;
+  z-index: 9999;
   @media (max-width: ${({ theme }) => theme.mobile}) {
-      width: 100%;
+      width: 280px;
+      max-width: 85vw;
     }
-  a {
+  a, button {
     font-size: 2rem;
     text-transform: uppercase;
     padding: 2rem 0;
