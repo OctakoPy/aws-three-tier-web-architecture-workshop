@@ -1,59 +1,25 @@
 {
   "name": "aws-3tier-web-layer",
-  "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/react": "^14.1.2",
-    "@testing-library/user-event": "^14.5.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-focus-lock": "^2.9.6",
-    "react-router-dom": "^6.20.1",
-    "react-scripts": "5.0.1",
-    "styled-components": "^6.1.6",
-    "web-vitals": "^3.5.0"
-  },
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
+    "react-focus-lock": "^2.13.7",
+    "styled-components": "^6.1.19"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "homepage": ".",
-  "overrides": {
-    "@babel/plugin-proposal-class-properties": "npm:@babel/plugin-transform-class-properties@^7.23.3",
-    "@babel/plugin-proposal-nullish-coalescing-operator": "npm:@babel/plugin-transform-nullish-coalescing-operator@^7.23.4",
-    "@babel/plugin-proposal-numeric-separator": "npm:@babel/plugin-transform-numeric-separator@^7.23.4",
-    "@babel/plugin-proposal-optional-chaining": "npm:@babel/plugin-transform-optional-chaining@^7.23.4",
-    "@babel/plugin-proposal-private-methods": "npm:@babel/plugin-transform-private-methods@^7.23.3",
-    "@babel/plugin-proposal-private-property-in-object": "npm:@babel/plugin-transform-private-property-in-object@^7.23.4"
-  },
-  "resolutions": {
-    "rimraf": "^5.0.5",
-    "glob": "^10.3.10",
-    "eslint": "^8.57.0",
-    "svgo": "^3.0.2",
-    "@humanwhocodes/config-array": "npm:@eslint/config-array@^0.11.13",
-    "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.1.0",
-    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4",
-    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.15"
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
   }
 }

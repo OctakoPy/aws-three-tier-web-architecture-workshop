@@ -5,9 +5,9 @@ import { GlobalStyles } from './global';
 import { theme } from './theme';
 import { Burger, Menu } from './components';
 import FocusLock from 'react-focus-lock';
-import Dashboard from './components/DatabaseDemo/DatabaseDemo'
-import Home from './components/Home/Home'
-import Login from './components/Login/Login'
+import Dashboard from './components/DatabaseDemo/DatabaseDemo.jsx'
+import Home from './components/Home/Home.jsx'
+import Login from './components/Login/Login.jsx'
 import {
   HashRouter as Router,
   Routes,
