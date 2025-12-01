@@ -1213,3 +1213,81 @@ Test database functionality through the UI; adding or listing entries should wor
 - **Amazon Linux 2023 / dnf:** Modern OS with long-term support and updated package management.
 
 ---
+
+### Step 15: External Load Balancer and Auto Scaling
+
+#### Web Tier AMI
+
+Navigate to EC2 → Instances.
+
+- Select the web tier instance created earlier. Under Actions → Image and templates, choose Create Image.
+- Provide a descriptive name and description for the AMI.
+- Click Create Image. This AMI captures the configuration of the web tier instance, including installed software and app setup.
+- Monitor progress under EC2 → AMIs.
+
+**Justification:** Creating an AMI ensures that new instances launched via Auto Scaling will be preconfigured with the same application environment, reducing manual setup and deployment time.
+
+#### Target Group
+
+Navigate to EC2 → Target Groups → Create Target Group.
+
+- Select Instances as the target type and provide a descriptive name.
+- Set protocol HTTP and port 80, matching the port NGINX listens on in the web tier.
+- Select the VPC used in the lab. Set the health check path to /health.
+- Skip registering targets for now and create the group.
+
+**Justification:** The target group allows the load balancer to distribute traffic across multiple instances, ensuring even load and high availability.
+
+#### Internet-Facing Load Balancer
+
+Navigate to EC2 → Load Balancers → Create Load Balancer.
+
+- Choose Application Load Balancer.
+- Provide a name and select Internet-facing, allowing public access to the web tier.
+- Assign the VPC and public web tier subnets.
+- Select the security group created for the ALB.
+- Configure the listener on HTTP port 80 and forward traffic to the web tier target group created earlier.
+
+**Justification:** An Internet-facing ALB allows users to access the web application while routing traffic intelligently to available web tier instances.
+
+#### Launch Template
+
+Navigate to EC2 → Launch Templates → Create Launch Template.
+
+- Provide a name and select the web tier AMI created earlier.
+- Choose t2.micro as the instance type.
+- Do not include a key pair; instances will be managed via Auto Scaling.
+- Do not set network information in the template; it will be configured in the Auto Scaling Group.
+
+**Justification:** Launch templates standardize instance creation, ensuring all Auto Scaling instances are identical and correctly configured.
+
+#### Auto Scaling Group (ASG)
+
+Navigate to EC2 → Auto Scaling Groups → Create Auto Scaling Group.
+
+- Provide a name and select the launch template created above.
+- Choose the VPC and public web tier subnets.
+- Attach the ASG to the external load balancer target group.
+- Configure desired, minimum, and maximum capacity to 2 instances.
+- Skip scaling policies for simplicity and create the group.
+
+![Web Tier Auto Scaling Group](application-code/images-revised/web-tier-auto-scaling-group.png)
+
+**Justification:** The ASG ensures high availability by automatically launching new instances if one fails, and integrates with the load balancer for seamless traffic distribution.
+
+#### Verification
+
+- The ASG spins up 2 new web tier instances.
+- To test, you can manually terminate one instance and observe the ASG launching a replacement.
+- Navigate to the ALB DNS in a browser to confirm the application is reachable.
+- **Note:** The original web tier instance is not part of the ASG; you may keep it for troubleshooting.
+
+#### Key Points and Justifications:
+
+- **AMI** ensures consistent configuration for Auto Scaling.
+- **Target group** defines which instances receive traffic and health checks.
+- **Internet-facing ALB** routes external traffic to the web tier securely.
+- **Launch template** standardizes instance creation.
+- **ASG** guarantees redundancy and resilience, maintaining the desired number of web tier instances automatically.
+
+---
