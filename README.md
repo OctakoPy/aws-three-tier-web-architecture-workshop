@@ -68,6 +68,12 @@ A secure, scalable file-sharing application built on AWS three-tier architecture
 | i-06a9160fa9453e14f   | None              | t2.micro        | running   | 10.0.2.244    | None           | subnet-0818b9d3244d1e8df     | vpc-0eb2f3f126ab55220    | Private-Instance-SG     | None        | None         |
 | i-0ee4d466662104109   | AppLayer          | t3.micro        | running   | 10.0.1.191    | 3.239.217.46   | subnet-08cf1139c7978f3b3     | vpc-0eb2f3f126ab55220    | Web-Tier-SG             | None        | None         |
 
+### Load Balancers
+
+| **Name**           | **ARN**                                                                                           | **DNS Name**                                                      | **Scheme**  | **State** | **Type**      | **VPC ID**                | **Security Groups**       | **Subnets**                                        |
+|-------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------|-----------|---------------|---------------------------|---------------------------|---------------------------------------------------|
+| InternalAppALB    | arn:aws:elasticloadbalancing:us-east-1:618375509227:loadbalancer/app/InternalAppALB/ee3a2ab40f629b34 | internal-InternalAppALB-186449520.us-east-1.elb.amazonaws.com | internal    | active    | application   | vpc-0eb2f3f126ab55220     | sg-05f19c3519e937606      | subnet-02dac064e831ff206, subnet-0818b9d3244d1e8df |
+
 ---
 
 ## 🎯 Features
